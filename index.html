@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Digital Capsule - Time Capsule with Account & Upload</title>
+<style>
+  /* General Styles */
+  body {
+    background: #f9f9fb;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .page {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 420px;
+    padding: 40px 20px;
+    box-sizing: border-box;
+    margin-top: 60px; /* to clear fixed header later */
+  }
+  .page.active {
+    display: flex;
+  }
+  h1, h2, h3 {
+    color: #333;
+    font-weight: 500;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+  }
+  select, input {
+    border: none;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 14px 20px;
+    font-size: 1.1em;
+    margin-bottom: 20px;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .chat-box input {
+    background: #f0f0f3;
+    color: #555;
+  }
+  button {
+    border: none;
+    border-radius: 18px;
+    background: #6c63ff;
+    color: #fff;
+    padding: 14px 0;
+    font-size: 1.15em;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.2s;
+  }
+  button:disabled {
+    background: #bcbcbc;
+    cursor: not-allowed;
+  }
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #555;
+  }
+  .error-message {
+    color: red;
+    font-size: 0.9em;
+    margin-top: -15px;
+    margin-bottom: 15px;
+    display: none;
+  }
+  form {
+    background: white;
+    padding: 30px 40px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 380px;
+    box-sizing: border-box;
+  }
+
+  /* Header & account styles */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background: #2a9df4;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    padding: 0 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 100;
+    display: none; /* initially hidden, shown after signup */
+  }
+  header.visible {
+    display: flex;
+  }
+  .account-icon {
+    width: 36px; height: 36px;
+    background: white;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .account-icon::before {
+    content: '👤';
+    font-size: 24px;
+    display: block;
+    text-align: center;
+    line-height: 36px;
+  }
+  .account-popup {
+    display: none;
+    position: absolute;
+    top: 48px;
+    right: 0;
+    background: white;
+    color: #333;
+    width: 300px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    padding: 18px;
+    font-size: 14px;
+    z-index: 200;
+  }
+  .account-popup.show {
+    display: block;
+  }
+  .account-popup h3 {
+    margin-top: 0;
+  }
+  .account-popup button {
+    margin-top: 10px;
+    background-color: #2a9df4;
+    border: none;
+    color: white;
+    padding: 8px 14px;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .memories {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .memory-item {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid white;
+    box-shadow: 0 0 4px rgba(0,0,0,0.2);
+    object-fit: cover;
+    cursor: pointer;
+  }
+
+  /* Main content after signup */
+  main {
+    max-width: 900px;
+    margin: 80px auto 60px;
+    padding: 0 20px;
+    width: 100%;
+  }
+  .upload-section {
+    border: 2px dashed #2a9df4;
+    padding: 25px;
+    border-radius: 12px;
+    background: white;
+    text-align: center;
+  }
+  .upload-section input type="file" {
+    margin-top: 12px;
+  }
+  .gallery {
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(140px,1fr));
+    gap: 20px;
+  }
+  .media-item {
+    background: #f7faff;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 1.5px 8px rgb(0 0 0 / 0.12);
+  }
+  .media-item img,
+  .media-item video,
+  .media-item audio {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .media-item audio {
+    width: 100%;
+    outline: none;
+    margin: 8px 0;
+  }
+  footer {
+    max-width: 900px;
+    margin: 20px auto 40px;
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+  }
+  footer button {
+    background: #2a9df4;
+    border: none;
+    padding: 12px 24px;
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body style="background-color:lavender">
+
+<!-- Step 1: Welcome Page -->
+<div id="welcomePage" class="page active" role="region" aria-label="Welcome Page">
+  <h1 style="color:indigo">Welcome To Digital Capsule</h1>
+  <select id="languageSelect" aria-label="Select language">
+    <option disabled selected value="">Select Language</option>
+    <option value="en">English (USA, UK, Canada, Australia)</option>
+    <option value="zh">Mandarin Chinese (China)</option>
+    <option value="hi">Hindi (India)</option>
+    <option value="es">Spanish (Mexico, Spain, Latin America)</option>
+    <option value="ar">Arabic (Middle East & North Africa)</option>
+    <option value="fr">French (France, parts of Africa, Quebec)</option>
+    <option value="bn">Bengali (Bangladesh)</option>
+    <option value="pt">Portuguese (Portugal, Brazil)</option>
+    <option value="ru">Russian (Russia)</option>
+    <option value="id">Indonesian (Indonesia)</option>
+    <option value="ur">Urdu (Pakistan)</option>
+    <option value="de">German (Germany, Austria, Switzerland)</option>
+    <option value="ja">Japanese (Japan)</option>
+    <option value="sw">Swahili (Kenya, Tanzania)</option>
+    <option value="mr">Marathi (India - regional major language)</option>
+    <option value="vi">Vietnamese (Vietnam)</option>
+    <option value="tr">Turkish (Turkey)</option>
+    <option value="fa">Persian/Farsi (Iran)</option>
+    <option value="si">Sinhala (Sri Lanka)</option>
+    <option value="ko">Korean (South & North Korea)</option>
+    <option value="ha">Hausa (Nigeria)</option>
+    <option value="it">Italian (Italy)</option>
+    <option value="th">Thai (Thailand)</option>
+    <option value="nl">Dutch (Netherlands)</option>
+    <option value="el">Greek (Greece)</option>
+    <option value="fil">Filipino/Tagalog (Philippines)</option>
+    <option value="ms">Malay (Malaysia)</option>
+    <option value="pl">Polish (Poland)</option>
+    <option value="he">Hebrew (Israel)</option>
+  </select>
+  <div class="chat-box" style="width: 100%;">
+    <label for="username" style="font-weight: 400; color: #aaa;">Enter your name</label>
+    <input type="text" id="username" placeholder="Your name..." autocomplete="off" />
+    <button class="get-started" id="startBtn">Get Started</button>
+  </div>
+</div>
+
+<!-- Step 2: Signup Page -->
+<div id="signupPage" class="page" role="region" aria-label="Signup Page">
+  <h1 style="color:Indigo">Create Your Account</h1>
+  <form id="signupForm" novalidate>
+
+    <label for="dob">Date of Birth (DD-MM-YYYY)</label>
+    <input type="text" id="dob" name="dob" placeholder="Birth Date"/>
+    <span id="dobError" class="error-message">You must be at least 13 years old.</span>
+
+    <label for="email">Email address</label>
+    <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
+    <span id="emailError" class="error-message">Please enter a valid email address.</span>
+
+    <label for="mobile">Mobile number</label>
+    <input type="tel" id="mobile" name="mobile" placeholder="+1 555 123 4567" pattern="^(+)?[0-9s-]{7,15}$" required autocomplete="tel" />
+    <span id="mobileError" class="error-message">Please enter a valid mobile number (7-15 digits, can include +, space, -).</span>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" placeholder="Choose a secure password" />
+    <span id="passwordError" class="error-message">Password must be at least 8 characters and include uppercase, lowercase, and a number.</span>
+
+    <button id="submitBtn" type="submit">Sign Up</button>
+
+  </form>
+</div>
+
+<!-- Step 3: Main App Page -->
+  <div id="mainPage" class="page" style="max-width: 900px; display: none; flex-direction: column; align-items: center; margin-top: 80px;">
+  <header>
+    <div class="memories" id="memories"></div>
+    <div class="account-icon" id="accountIcon" title="Account Info"></div>
+    <div class="account-popup" id="accountPopup" role="dialog" aria-modal="true" aria-labelledby="accountPopupTitle">
+      <h3 id="accountPopupTitle">Account Details</h3>
+      <div><b>User name:</b> <span id="userName">User123</span></div>
+      <div><b>Date of creation:</b> <span id="creationDate">2025-10-01</span></div>
+      <div><b>Files uploaded:</b> <span id="fileCount">0</span></div>
+      <div><b>Total ROM occupied:</b> <span id="totalSize">0 MB</span></div>
+      <button id="complainBtn">Complain to Server</button>
+    </div>
+  </header>
+  <main>
+    <section class="upload-section">
+      <h2>Upload Files</h2>
+      <input type="file" id="fileInput" multiple accept=".jpg,.png,.jpeg,.mp3,.mp4" aria-describedby="supportedFormats" />
+      <p id="supportedFormats">Supported formats: JPG, PNG, JPEG, MP3, MP4</p>
+    </section>
+    <section class="gallery" id="gallery" aria-live="polite" aria-label="Gallery of uploaded media files"></section>
+  </main>
+  <footer>
+    <button id="btnCollection" aria-label="Switch to Collection Page">Switch to Collection Page</button>
+    <button id="btnUploadMore" aria-label="Upload More Files">Upload More Files</button>
+  </footer>
+</div>
+
+<script>
+  // Step 1: Welcome Page elements
+  const langSelect = document.getElementById('languageSelect');
+  const input = document.getElementById('username');
+  const startBtn = document.getElementById('startBtn');
+  const welcomePage = document.getElementById('welcomePage');
+
+  // Step 2: Signup Page elements
+  const signupPage = document.getElementById('signupPage');
+  const form = document.getElementById("signupForm");
+  const emailInput = document.getElementById("email");
+  const mobileInput = document.getElementById("mobile");
+  const dobInput = document.getElementsByName("dob")[0];
+  const passwordInput = document.getElementById("password");
+  const submitBtn = document.getElementById("submitBtn");
+
+  // Signup error messages
+  const emailError = document.getElementById("emailError");
+  const mobileError = document.getElementById("mobileError");
+  const dobError = document.getElementById("dobError");
+  const passwordError = document.getElementById("passwordError");
+
+  // Step 3: Main App Page elements
+  const mainPage = document.getElementById('mainPage');
+  const accountIcon = document.getElementById('accountIcon');
+  const accountPopup = document.getElementById('accountPopup');
+  const fileInput = document.getElementById('fileInput');
+  const gallery = document.getElementById('gallery');
+  const memoriesDiv = document.getElementById('memories');
+  const fileCountSpan = document.getElementById('fileCount');
+  const totalSizeSpan = document.getElementById('totalSize');
+  const userNameSpan = document.getElementById('userName');
+  const creationDateSpan = document.getElementById('creationDate');
+  const complainBtn = document.getElementById('complainBtn');
+  const btnCollection = document.getElementById('btnCollection');
+  const btnUploadMore = document.getElementById('btnUploadMore');
+  const header = mainPage.querySelector('header');
+
+  // Data storage for user
+  const userData = {
+    userName: '',
+    creationDate: '',
+    uploadedFiles: [],
+  };
+
+  // --- STEP 1: Welcome page logic ---
+
+  function checkWelcomeInputs() {
+    startBtn.disabled = input.value.trim() === '' || langSelect.value === '';
+  }
+  input.addEventListener('input', checkWelcomeInputs);
+  langSelect.addEventListener('change', checkWelcomeInputs);
+
+  startBtn.addEventListener('click', () => {
+    if (input.value.trim() !== '' && langSelect.value !== '') {
+      // Save entered username and creation date for user data
+      userData.userName = input.value.trim();
+
+      // Use today's date as account creation date - ISO format YYYY-MM-DD
+      userData.creationDate = new Date().toISOString().split('T')[0];
+
+      // Transition to signup page
+      welcomePage.classList.remove('active');
+      signupPage.classList.add('active');
+      // Focus email input on signup page load
+      emailInput.focus();
+    }
+  });
+
+  // --- STEP 2: Signup validation ---
+
+  // Date validation: format DD-MM-YYYY and age >= 13
+  function validateDOB() {
+    const val = dobInput.value.trim();
+    // Regex fix: needs double \\d for JS strings - corrected below
+    const regex = /^d{4}-d{2}-d{2}$/;
+    if (!regex.test(val)) {
+      dobError.style.display = 'block';
+      dobError.textContent = 'Date must be in DD-MM-YYYY format.';
+      return false;
+    }
+    const parts = val.split("-");
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
+      dobError.style.display = 'block';
+      dobError.textContent = 'Invalid date entered.';
+      return false;
+    }
+    const today = new Date();
+    const minAgeDate = new Date();
+    minAgeDate.setFullYear(today.getFullYear() - 13);
+    if (date > minAgeDate) {
+      dobError.style.display = 'block';
+      dobError.textContent = 'You must be at least 13 years old to sign up.';
+      return false;
+    }
+    dobError.style.display = 'none';
+    return true;
+  }
+
+  function validateEmail() {
+    if (emailInput.validity.valid) {
+      emailError.style.display = "none";
+      return true;
+    } else {
+      emailError.style.display = "block";
+      return false;
+    }
+  }
+
+  function validateMobile() {
+    const pattern = new RegExp(mobileInput.pattern);
+    if (pattern.test(mobileInput.value.trim())) {
+      mobileError.style.display = "none";
+      return true;
+    } else {
+      mobileError.style.display = "block";
+      return false;
+    }
+  }
+
+  function validatePassword() {
+    if (passwordInput.validity.valid) {
+      passwordError.style.display = "none";
+      return true;
+    } else {
+      passwordError.style.display = "block";
+      return false;
+    }
+  }
+
+  function checkSignupValid() {
+    const valid = validateEmail() && validateMobile() && validateDOB() && validatePassword();
+    submitBtn.disabled = !valid;
+  }
+
+  emailInput.addEventListener("input", () => {
+    validateEmail();
+    checkSignupValid();
+  });
+
+  mobileInput.addEventListener("input", () => {
+    validateMobile();
+    checkSignupValid();
+  });
+
+  dobInput.addEventListener("input", () => {
+    validateDOB();
+    checkSignupValid();
+  });
+
+  passwordInput.addEventListener("input", () => {
+    validatePassword();
+    checkSignupValid();
+  });
+
+  // <-- Replaced this form submit event handler as requested -->
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();  // prevent actual form submission
+    signupPage.classList.remove('active');
+    mainPage.style.display = 'flex';
+    header.classList.add('visible');
+    updateUserInfo();
+    renderFiles();
+  });
+
+  // --- STEP 3: Main app page logic ---
+
+  // Compute total size in MB
+  function computeTotalSize(files) {
+    let totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+    return (totalBytes / (1024 * 1024)).toFixed(2) + " MB";
+  }
+
+  // Update user info in popup
+  function updateUserInfo() {
+    fileCountSpan.textContent = userData.uploadedFiles.length;
+    totalSizeSpan.textContent = computeTotalSize(userData.uploadedFiles);
+    userNameSpan.textContent = userData.userName;
+    creationDateSpan.textContent = userData.creationDate;
+  }
+
+  // Render media gallery and memories bar
+  function renderFiles() {
+    gallery.innerHTML = '';
+    memoriesDiv.innerHTML = '';
+    updateUserInfo();
+
+    // Filter out files older than 15 days
+    const now = Date.now();
+    const validFiles = userData.uploadedFiles.filter(file => (now - file.uploadTime) < 15 * 24 * 3600 * 1000);
+    userData.uploadedFiles = validFiles; // Auto-remove old files
+
+    validFiles.forEach((file, index) => {
+      // Create media element based on type
+      let mediaElem;
+      if (file.type.startsWith('image/')) {
+        mediaElem = document.createElement('img');
+      } else if (file.type.startsWith('video/')) {
+        mediaElem = document.createElement('video');
+        mediaElem.controls = true;
+      } else if (file.type.startsWith('audio/')) {
+        mediaElem = document.createElement('audio');
+        mediaElem.controls = true;
+      } else {
+        mediaElem = document.createElement('div');
+      }
+      mediaElem.src = file.url;
+      mediaElem.className = 'media-item';
+      mediaElem.style.borderRadius = '12px';
+
+      const container = document.createElement('div');
+      container.className = 'media-item';
+      container.appendChild(mediaElem);
+      gallery.appendChild(container);
+
+      // Render memories for images & videos only
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        const memoryThumb = file.type.startsWith('video/') ? document.createElement('video') : document.createElement('img');
+        if (file.type.startsWith('video/')) {
+          memoryThumb.muted = true;
+          memoryThumb.loop = true;
+          memoryThumb.autoplay = true;
+          memoryThumb.playsInline = true;
+        }
+        memoryThumb.src = file.url;
+        memoryThumb.className = 'memory-item';
+        memoryThumb.title = 'Click to view file';
+        memoriesDiv.appendChild(memoryThumb);
+      }
+    });
+  }
+
+  // Handle file upload input
+  fileInput.addEventListener('change', e => {
+    const files = Array.from(e.target.files);
+    files.forEach(file => {
+      if (!['image/jpeg','image/png','image/jpg','audio/mpeg','video/mp4'].includes(file.type)) {
+        alert(`Unsupported file type: ${file.type}`);
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      userData.uploadedFiles.push({ name: file.name, type: file.type, size: file.size, url, uploadTime: Date.now() });
+    });
+    renderFiles();
+    // Reset file input to allow uploading same files again
+    fileInput.value = '';
+  });
+
+  // Toggle account popup on icon click
+  accountIcon.addEventListener('click', () => {
+    accountPopup.classList.toggle('show');
+  });
+
+  // Complain button event
+  complainBtn.addEventListener('click', () => {
+    alert('Your complaint has been sent to the server. We will contact you shortly.');
+  });
+
+  // Footer buttons actions (demo placeholder)
+  btnCollection.addEventListener('click', () => {
+    alert('Navigating to collection page...');
+  });
+  btnUploadMore.addEventListener('click', () => {
+    fileInput.click();
+  });
+</script>
+
+</body>
+</html>
